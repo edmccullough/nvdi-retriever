@@ -9,11 +9,12 @@ import os
 # Define input and output files
 map_dir = "/home/ed/Maps/TriggRanch/TriggRanchMap/Topography"
 inputraster = os.path.join(map_dir, "n35_w104_1arc_v3-clipped-slope.tif")
+inputraster_units = "% slope"
 inputshape = os.path.join("/home/ed/Maps/TriggRanch/TriggPastures/TirggPasturesESRI", "TriggPastures.shp")
 outputcsv = os.path.join(map_dir,"pasturedata.csv")
 pasture_values = []
 pasture_names = []
-bins=[0, 5, 10, 15, 100]   # used for gdal histogram
+bins=[0, 5, 10, 15, 10000]   # used for gdal histogram
 
 shapes = gpd.read_file(inputshape)
 print(shapes)
@@ -34,7 +35,6 @@ for i in range(len(shapes)):
     Xsize = dataset.RasterXSize
     Ysize = dataset.RasterYSize
     band_count = dataset.RasterCount
-    # band_count = 2
     tif_array = np.zeros((band_count, Ysize, Xsize))
     for i in range(band_count):
         tif_array[i]  = np.array(dataset.GetRasterBand(i+1).ReadAsArray())
@@ -71,20 +71,24 @@ for i in range(len(pasture_values)):
     pasture_stats[7,i] = hist[3] * pixel_area
 print(bins)
 
-# create dataframe using pasture_name and pasture_stats data
+histogram_labels = []
+histogram_labels.append('Land area: <'+str(bins[1])+inputraster_units)
+histogram_labels.append('Land area:'+str(bins[1])+'-'+str(bins[2])+inputraster_units)
+histogram_labels.append('Land area:'+str(bins[2])+'-'+str(bins[3])+inputraster_units)
+histogram_labels.append('Land area: >'+str(bins[3])+inputraster_units)
+
+# Create dataframe using pasture and stats data and export to csv file
 pasture_data = {'Pasture Names': pasture_names,
     'Mean': pasture_stats[0],
     'Std': pasture_stats[1],
     'Min': pasture_stats[2],
     'Max': pasture_stats[3],
-    'Histogram0': pasture_stats[4],
-    'Histogram1': pasture_stats[5],
-    'Histogram2': pasture_stats[6],
-    'Histogram3': pasture_stats[7]
+    histogram_labels[0] : pasture_stats[4],
+    histogram_labels[1] : pasture_stats[5],
+    histogram_labels[2] : pasture_stats[6],
+    histogram_labels[3] : pasture_stats[7]
     }
-df = pd.DataFrame(pasture_data, columns= ['Pasture Names', 'Mean','Std','Min','Max','Histogram0','Histogram1','Histogram2','Histogram3'])
+df = pd.DataFrame(pasture_data, columns= ['Pasture Names', 'Mean','Std','Min','Max',histogram_labels[0],histogram_labels[1],histogram_labels[2],histogram_labels[3]])
 print (df)
-
 print("outputting to csv file at "+outputcsv)
 df.to_csv(outputcsv, index = False, header=True)
-
