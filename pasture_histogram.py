@@ -8,18 +8,15 @@ import os
 
 # Define input and output files
 map_dir = "/home/ed/Maps/TriggRanch/TriggRanchMap/Topography"
-inputshape = os.path.join("/home/ed/Maps/TriggRanch/TriggPastures/TirggPasturesESRI", "TriggPastures.shp")
 inputraster = os.path.join(map_dir, "n35_w104_1arc_v3-clipped-slope.tif")
+inputshape = os.path.join("/home/ed/Maps/TriggRanch/TriggPastures/TirggPasturesESRI", "TriggPastures.shp")
+outputcsv = os.path.join(map_dir,"pasturedata.csv")
 pasture_values = []
 pasture_names = []
-bins=[0, 10, 20, 30]
+bins=[0, 5, 10, 15, 100]   # used for gdal histogram
 
-#geopandas version
 shapes = gpd.read_file(inputshape)
 print(shapes)
-# print(len(shapes))
-# list(shapes.columns.values)
-# [u'dip', u'dip_dir', u'cosa', u'sina', 'geometry']
 
 # Create cropped output raster for pasture
 for i in range(len(shapes)):
@@ -60,7 +57,7 @@ gt = dataset.GetGeoTransform()
 print(gt)
 
 pasture_stats = np.zeros((4+4,len(pasture_values)))
-pixel_area = 243243 / 55000
+pixel_area = (gt[1] * gt[5])/ -4046.8564224  # pixel dimensions in meters divided by 4046 m^2 / acre
 
 for i in range(len(pasture_values)):
     pasture_stats[0,i] = np.mean(pasture_values[i])
@@ -68,14 +65,13 @@ for i in range(len(pasture_values)):
     pasture_stats[2,i] = np.min(pasture_values[i])
     pasture_stats[3,i] = np.max(pasture_values[i])
     hist,foo = np.histogram(pasture_values[i], bins = bins)
-    pasture_stats[4,i] = hist[0] / pixel_area
-    pasture_stats[5,i] = hist[1] / pixel_area
-    pasture_stats[6,i] = hist[2] / pixel_area
-    # pasture_stats[7,i] = hist[3]
-    # print(pasture_names[i])
-
+    pasture_stats[4,i] = hist[0] * pixel_area
+    pasture_stats[5,i] = hist[1] * pixel_area
+    pasture_stats[6,i] = hist[2] * pixel_area
+    pasture_stats[7,i] = hist[3] * pixel_area
 print(bins)
 
+# create dataframe using pasture_name and pasture_stats data
 pasture_data = {'Pasture Names': pasture_names,
     'Mean': pasture_stats[0],
     'Std': pasture_stats[1],
@@ -85,11 +81,10 @@ pasture_data = {'Pasture Names': pasture_names,
     'Histogram1': pasture_stats[5],
     'Histogram2': pasture_stats[6],
     'Histogram3': pasture_stats[7]
-    # 'Histogram': np.histogram(pasture_values, bins = bins)
-    # 'Pasture Values': pasture_values
     }
-
 df = pd.DataFrame(pasture_data, columns= ['Pasture Names', 'Mean','Std','Min','Max','Histogram0','Histogram1','Histogram2','Histogram3'])
 print (df)
-df.to_csv(os.path.join(map_dir,"pasturedata.csv"), index = False, header=True)
+
+print("outputting to csv file at "+outputcsv)
+df.to_csv(outputcsv, index = False, header=True)
 
