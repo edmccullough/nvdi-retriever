@@ -21,20 +21,7 @@ for dir_name in os.listdir(landsat_dir):
     if os.path.isdir(os.path.join(landsat_dir, dir_name)):
         print("adding to tmplist")
         tmplist.append(dir_name)
-    # if not os.path.isdir(dir_name):
-    #     print(dir_name)
-    #     landsat_filelist.remove(dir_name)
 landsat_filelist = tmplist
-
-
-    # num=int(input("Enter number of players: "))
-    # tmplist=[]
-    # for _ in range(num):
-    #     pl=input("Enter name: " )
-    #     tmplist.append(pl)
-
-    # print(tmplist)
-
 
 print("landsat_filelist")
 print(landsat_filelist)
@@ -43,7 +30,6 @@ date_array = np.zeros((file_count,3)).astype('int64')
 raster_array = np.zeros((file_count,YSize, XSize))
 pixel_calc_array = np.zeros((len(calcs),YSize, XSize))
 tif_calc_array = np.zeros((file_count,len(calcs)+3)).astype('float32')
-
 
 # Load NVDI images into array
 print("Loading NVDI images...")
@@ -79,8 +65,6 @@ for i in range(file_count):
     tif_calc_array[i,6]= np.max(np.concatenate(raster_array[i])) / 10000.
 
 np.savetxt('tif_calcs.csv', tif_calc_array, delimiter=',', fmt='%1.3f', header="Year, Month, DayOfYear, Mean, Std, Min, Max")
-# np.savetxt("tif_calcs.csv", np.dstack((np.arange(1, arr.size+1),arr))[0],"%d,%d",header="Id,Values")
-
 
 # Generate pixel calc images
 print("Populate pixel calc array...")
@@ -93,19 +77,24 @@ for x in range(XSize):
         pixel_calc_array[3,y,x]= np.max(raster_array[:,y,x])
 print("Converting NVDI matrix to GeoTiff file...")
 for i in range(len(calcs)):
-    print("Generating Geotiff for ", calcs[i])
+    generate_geotiff_from_array(landsat_dir= landsat_dir,label='LC08_L1TP_032035_'+calcs[i], array=pixel_calc_array[i])
+
+
+
+def generate_geotiff_from_array(landsat_dir, label, array, ):
+    print("Generating Geotiff for ", label)
     wkt = dataset.GetProjection()
     driver = gdal.GetDriverByName("GTiff")
     band = dataset.GetRasterBand(1)
     gt = dataset.GetGeoTransform()
-    output_file = os.path.join(landsat_dir, "LC08_L1TP_032035_NVDI_"+ calcs[i] +".TIF")
+    output_file = os.path.join(landsat_dir, label +".TIF")
     dst_ds = driver.Create(output_file, XSize, YSize, 1, gdal.GDT_Int16)
-    dst_ds.GetRasterBand(1).WriteArray(pixel_calc_array[i])     #writting output raster
-    dst_ds.GetRasterBand(1).SetNoDataValue(0)    #setting nodata value
-    dst_ds.SetGeoTransform(gt)
-    srs = osr.SpatialReference()    # setting spatial reference of output raster
+    dst_ds.GetRasterBand(1).WriteArray(array)     #write output raster
+    dst_ds.GetRasterBand(1).SetNoDataValue(0)    #set nodata value as zero
+    dst_ds.SetGeoTransform(gt)  #set geotransform for new raster based on dataset
+    srs = osr.SpatialReference()    #set spatial reference of output raster
     srs.ImportFromWkt(wkt)
     dst_ds.SetProjection( srs.ExportToWkt() )
     ds = None       #Close output raster dataset
     dst_ds = None    #Close output raster dataset
-    print("GeoTiff file created at"+output_file)
+    print("GeoTiff file created at "+output_file)

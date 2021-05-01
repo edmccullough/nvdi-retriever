@@ -105,7 +105,6 @@ for i in range(len(scenes)):
         landsat_array[i]  = np.array(dataset.GetRasterBand(1).ReadAsArray())
         print(np.min(np.concatenate(landsat_array[i])))
         print(np.max(np.concatenate(landsat_array[i])))
-        # print(np.mean(np.concatenate(landsat_array)))
 
     # Calculate NVDI matrix
     print("Calculating NVDI matrix.....")
@@ -120,16 +119,8 @@ for i in range(len(scenes)):
                 print(min(max(nvdi_array[i][y][x],-1),1))
             except:
                 print ("b4 = "+str(b4)+"; b5 = "+str(b5)+"; num = "+str(num)+"; den = "+str(den)+"; NVDI = "+str(nvdi_array[y][x]))
-    # nvdi_array *= 10000.
-    # nvdi_array = nvdi_array.astype('int16')
     print(nvdi_array[i])
-    # print("Shape, Element Count, Sum, Min, Max, Ave")
-    # print(nvdi_array.shape)
-    # print(np.concatenate(nvdi_array).shape)
-    # print(np.sum(np.concatenate(nvdi_array)))
-    # print(np.min(np.concatenate(nvdi_array)))
-    # print(np.max(np.concatenate(nvdi_array)))
-    # print(np.mean(np.concatenate(nvdi_array)))
+
 
     # Convert NVDI matrix to tif file
     print("Converting NVDI matrix to GeoTiff file...")
@@ -139,14 +130,14 @@ for i in range(len(scenes)):
     gt = dataset.GetGeoTransform()
     output_file = os.path.join(landsat_dir, landsat_product_id+"_NVDI.TIF")
     dst_ds = driver.Create(output_file, XSize, YSize, 1, gdal.GDT_Int16)
-    dst_ds.GetRasterBand(1).WriteArray( nvdi_array[i] )     #writting output raster
-    dst_ds.GetRasterBand(1).SetNoDataValue(0)    #setting nodata value
-    dst_ds.SetGeoTransform(gt)
-    srs = osr.SpatialReference()    # setting spatial reference of output raster
+    dst_ds.GetRasterBand(1).WriteArray( nvdi_array[i] )     # write output raster
+    dst_ds.GetRasterBand(1).SetNoDataValue(0)    # set nodata value
+    dst_ds.SetGeoTransform(gt)  # set geotransform from dataset
+    srs = osr.SpatialReference()    # set spatial reference of output raster
     srs.ImportFromWkt(wkt)
     dst_ds.SetProjection( srs.ExportToWkt() )
-    ds = None       #Close output raster dataset
-    dst_ds = None    #Close output raster dataset
+    ds = None       # close output raster dataset
+    dst_ds = None    # close output raster dataset
     print("GeoTiff file created at"+output_file)
 
 
