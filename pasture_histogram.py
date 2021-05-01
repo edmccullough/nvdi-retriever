@@ -14,7 +14,7 @@ inputshape = os.path.join("/home/ed/Maps/TriggRanch/TriggPastures/TirggPasturesE
 outputcsv = os.path.join(map_dir,"pasturedata.csv")
 pasture_values = []
 pasture_names = []
-bins=[0, 5, 10, 15, 10000]   # used for gdal histogram
+bins=[0, 5, 10, 15, 20, 25, 10000]   # used for gdal histogram
 
 shapes = gpd.read_file(inputshape)
 print(shapes)
@@ -56,7 +56,7 @@ for i in range(len(shapes)):
 gt = dataset.GetGeoTransform()
 print(gt)
 
-pasture_stats = np.zeros((4+4,len(pasture_values)))
+pasture_stats = np.zeros((4+len(bins)-1,len(pasture_values)))
 pixel_area = (gt[1] * gt[5])/ -4046.8564224  # pixel dimensions in meters divided by 4046 m^2 / acre
 
 for i in range(len(pasture_values)):
@@ -65,30 +65,31 @@ for i in range(len(pasture_values)):
     pasture_stats[2,i] = np.min(pasture_values[i])
     pasture_stats[3,i] = np.max(pasture_values[i])
     hist,foo = np.histogram(pasture_values[i], bins = bins)
-    pasture_stats[4,i] = hist[0] * pixel_area
-    pasture_stats[5,i] = hist[1] * pixel_area
-    pasture_stats[6,i] = hist[2] * pixel_area
-    pasture_stats[7,i] = hist[3] * pixel_area
+    for j in range(len(bins)-1):
+        pasture_stats[j+4,i] = hist[j] * pixel_area
 print(bins)
 
 histogram_labels = []
 histogram_labels.append('Land area: <'+str(bins[1])+inputraster_units)
-histogram_labels.append('Land area:'+str(bins[1])+'-'+str(bins[2])+inputraster_units)
-histogram_labels.append('Land area:'+str(bins[2])+'-'+str(bins[3])+inputraster_units)
-histogram_labels.append('Land area: >'+str(bins[3])+inputraster_units)
+for i in range(len(bins)-3):
+    histogram_labels.append('Land area:'+str(bins[i+1])+'-'+str(bins[i+2])+inputraster_units)
+histogram_labels.append('Land area: >'+str(bins[len(bins)-2])+inputraster_units)
 
 # Create dataframe using pasture and stats data and export to csv file
 pasture_data = {'Pasture Names': pasture_names,
     'Mean': pasture_stats[0],
     'Std': pasture_stats[1],
     'Min': pasture_stats[2],
-    'Max': pasture_stats[3],
-    histogram_labels[0] : pasture_stats[4],
-    histogram_labels[1] : pasture_stats[5],
-    histogram_labels[2] : pasture_stats[6],
-    histogram_labels[3] : pasture_stats[7]
+    'Max': pasture_stats[3]
     }
-df = pd.DataFrame(pasture_data, columns= ['Pasture Names', 'Mean','Std','Min','Max',histogram_labels[0],histogram_labels[1],histogram_labels[2],histogram_labels[3]])
+for i in range(len(histogram_labels)):
+    pasture_data[histogram_labels[i]] = pasture_stats[i+4]
+
+columns= ['Pasture Names', 'Mean','Std','Min','Max']
+# ,histogram_labels[0],histogram_labels[1],histogram_labels[2],histogram_labels[3]]
+for i in range(len(histogram_labels)):
+    columns.append(histogram_labels[i])
+df = pd.DataFrame(pasture_data, columns = columns)
 print (df)
 print("outputting to csv file at "+outputcsv)
 df.to_csv(outputcsv, index = False, header=True)
