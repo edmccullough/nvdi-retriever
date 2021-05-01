@@ -48,8 +48,9 @@ for scene in scenes:
 # Initialize nvdi_array
 nvdi_array = np.zeros((len(scenes),YSize, XSize))
 nvdi_array = nvdi_array.astype('float32')
+print(nvdi_array.shape)
 
-# Iterate through list of 
+# Iterate through list of scenes
 for i in range(len(scenes)):
     scene = scenes[i]
     landsat_product_id = scene['landsat_product_id']
@@ -80,7 +81,6 @@ for i in range(len(scenes)):
         print("Crop in range "+str(x_min)+" "+str(y_min)+" "+str(x_max)+" "+str(y_max))
         bands = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 'QA']
         for band in bands:
-        # for band in range (1,12):
             print(landsat_product_id+"_B"+str(band)+".TIF cropping starting now....")
             inputraster =  os.path.join(landsat_dir, landsat_product_id+"_B"+str(band)+".TIF")
             outputraster =  os.path.join(landsat_dir, landsat_product_id+"_B"+str(band)+"_cropped.TIF")
@@ -99,26 +99,26 @@ for i in range(len(scenes)):
     sample_array = np.array(dataset.GetRasterBand(1).ReadAsArray())
 
     landsat_array = np.zeros((len(bands),YSize, XSize))
-    for i in range(len(bands)):
-        print(bands[i])
-        dataset= gdal.Open(os.path.join(landsat_dir, landsat_product_id+"_B"+str(bands[i])+"_cropped.TIF"))
-        landsat_array[i]  = np.array(dataset.GetRasterBand(1).ReadAsArray())
-        print(np.min(np.concatenate(landsat_array[i])))
-        print(np.max(np.concatenate(landsat_array[i])))
+    for b in range(len(bands)):
+        dataset= gdal.Open(os.path.join(landsat_dir, landsat_product_id+"_B"+str(bands[b])+"_cropped.TIF"))
+        landsat_array[b]  = np.array(dataset.GetRasterBand(1).ReadAsArray())
+        # print(bands[i])
+        # print("Min ",np.min(np.concatenate(landsat_array[i])))
+        # print("Max ",np.max(np.concatenate(landsat_array[i])))
 
     # Calculate NVDI matrix
     print("Calculating NVDI matrix.....")
     for x in range(XSize):
         for y in range(YSize):
             try:
-                b4 = landsat_array[3][y][x].astype('int16')
-                b5 = landsat_array[4][y][x].astype('int16')
-                num = b5 - b4
-                den = b5 + b4
-                nvdi_array[i][y][x] = num / den *10000.
-                print(min(max(nvdi_array[i][y][x],-1),1))
+                b4 = landsat_array[3][y][x].astype('int32')
+                b5 = landsat_array[4][y][x].astype('int32')
+                nvdi_array[i][y][x] = (b5 - b4) / (b5 + b4) *10000.
+                # print(min(max(nvdi_array[i][y][x],-10000),10000))
             except:
-                print ("b4 = "+str(b4)+"; b5 = "+str(b5)+"; num = "+str(num)+"; den = "+str(den)+"; NVDI = "+str(nvdi_array[y][x]))
+                # pass
+                print("x = "+str(x)+"; y = "+str(y))
+                print("b4 = "+str(b4)+"; b5 = "+str(b5))
     print(nvdi_array[i])
 
 
@@ -144,5 +144,3 @@ for i in range(len(scenes)):
 # Log out of api
 print("Logging out of API...")
 api.logout()
-
-
