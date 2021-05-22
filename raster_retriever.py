@@ -112,7 +112,6 @@ def tif_to_array(tif_path):
         tif_array[b]  = np.array(dataset.GetRasterBand(b+1).ReadAsArray())
     return tif_array
 
-
 def array_to_tif(tif_array, output_file, reference_tif):
     # array is 2D array to be converted into TIF file
     # output_file = os.path.join(landsat_dir, landsat_product_id+"_NVDI.TIF")
@@ -124,8 +123,8 @@ def array_to_tif(tif_array, output_file, reference_tif):
     driver = gdal.GetDriverByName("GTiff")
     band = dataset.GetRasterBand(1)
     gt = dataset.GetGeoTransform()
-    XSize = tif_array.shape()[1]
-    YSize = tif_array.shape()[0]
+    XSize = tif_array.shape[1]
+    YSize = tif_array.shape[0]
     # XSize = dataset.RasterXSize
     # YSize = dataset.RasterYSize
     dst_ds = driver.Create(output_file, XSize, YSize, 1, gdal.GDT_Int16)
@@ -139,13 +138,15 @@ def array_to_tif(tif_array, output_file, reference_tif):
     dst_ds = None    # close output raster dataset
     print("GeoTiff file created at"+output_file)
 
-def nvdi_generator(nir_raster, red_raster):
-    nir_dataset= gdal.Open(nir_raster)
-    red_dataset= gdal.Open(red_raster)
-    nir_array = np.array(nir_dataset.GetRasterBand(1).ReadAsArray())
-    red_array = np.array(red_dataset.GetRasterBand(1).ReadAsArray())
-    XSize = nir_array.shape()[1]
-    YSize = nir_array.shape()[0]
+def nvdi_generator(nir_raster, red_raster, output_file="NULL"):
+    nir_array = tif_to_array(nir_raster)[0]
+    red_array = tif_to_array(red_raster)[0]
+    # nir_array = np.array(nir_dataset.GetRasterBand(1).ReadAsArray())
+    # red_array = np.array(red_dataset.GetRasterBand(1).ReadAsArray())
+    XSize = nir_array.shape[1]
+    YSize = nir_array.shape[0]
+    if(XSize != red_array.shape[1] or YSize != red_array.shape[0]):
+        print("Arrays are different shapes")
 
     # Initialize nvdi_array
     nvdi_array = np.zeros((YSize, XSize))
@@ -157,12 +158,17 @@ def nvdi_generator(nir_raster, red_raster):
     for x in range(XSize):
         for y in range(YSize):
             try:
-                red = red_array[y][x].astype('int32')
-                nir = nir_array[y][x].astype('int32')
+                red = red_array[y][x].astype('float32')
+                nir = nir_array[y][x].astype('float32')
                 nvdi_array[y][x] = (nir - red) / (nir + red) *10000.
                 # print(min(max(nvdi_array[i][y][x],-10000),10000))
             except:
                 # pass
                 print("x = "+str(x)+"; y = "+str(y))
                 print("nir = "+str(nir)+"; red = "+str(red))
-    print(nvdi_array)
+    
+    # Create tif (optional) and return array
+    if(output_file != "NULL"):
+        array_to_tif(nvdi_array, output_file, red_raster)
+    return(nvdi_array)
+
