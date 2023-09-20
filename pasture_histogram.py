@@ -12,7 +12,7 @@ inputraster = os.path.join(map_dir, "n35_w104_1arc_v3-clipped-slope.tif")
 inputraster_units = "pct slope"
 inputshape = os.path.join("/home/ed/Maps/TriggRanch/TriggPastures/TirggPasturesESRI", "TriggPastures.shp")
 outputcsv = os.path.join(map_dir,"pasturedata.csv")
-bins=[0, 5, 10, 15, 20, 25, 10000]   # used for gdal histogram
+bins=[0, 6, 9, 12, 15, 10000]   # used for gdal histogram
 
 pasture_values = []
 pasture_names = []

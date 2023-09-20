@@ -64,7 +64,8 @@ def landsat_fetch():
 
     def query_landsat_downloads():
         print("Searching from "+str(start_date)+" to "+str(end_date))
-        password = keyring.get_password("EarthExplorer", ee_username)
+        #password = keyring.get_password("EarthExplorer", ee_username)
+        password = "BurritoTime123"
         api = API(ee_username, password)
         scenes = api.search(
             dataset=dataset,
@@ -172,3 +173,5 @@ def nvdi_generator(nir_raster, red_raster, output_file="NULL"):
         array_to_tif(nvdi_array, output_file, red_raster)
     return(nvdi_array)
 
+
+landsat_fetch()
